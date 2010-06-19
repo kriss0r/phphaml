@@ -35,7 +35,7 @@ abstract class SassRenderer extends CommonRenderer
 	 * @param string Common output style
 	 * @return SassRenderer
 	 */
-	public static function getInstance(SassElementsList $elements, $type = null)
+	public static function getInstance(CommonElementsList $elements, $type = null)
 	{
 		if (is_null($type))
 			$type = self::NESTED;
