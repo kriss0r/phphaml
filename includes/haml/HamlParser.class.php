@@ -214,6 +214,23 @@ class HamlLine
 	}
 
 	/**
+	 * Return source of child
+	 *
+	 * @param integer Level
+	 * @return string
+	 */
+	public function getAsSource($iLevel)
+	{
+		$x = ($this->iIndent - $iLevel - 1) * self::INDENT;
+		$sSource = '';
+		if ($x >= 0)
+			$sSource = preg_replace('|^'.str_repeat(self::TOKEN_INDENT, ($iLevel + 1) * self::INDENT).'|', '', $this->sRealSource);
+		foreach ($this->aChildren as $oChild)
+			$sSource .= self::TOKEN_LINE.$oChild->getAsSource($iLevel);
+		return trim($sSource, self::TOKEN_LINE);
+	}
+
+	/**
 	 * Set parent parser. Used internally.
 	 *
 	 * @param object Parent parser
@@ -446,6 +463,11 @@ class HamlLine
 	public $bWhitespaceOutside = false;
 	public $bWhitespaceInside = false;
 
+  public function addCustomBlock($begin, $end)
+  {
+    self::$aCustomBlocks[$begin] = $end;
+  }
+
 	/**
 	 * Parse line
 	 *
@@ -483,13 +505,23 @@ class HamlLine
 			if (!$this->embedCode())
 				return '';
 			$bBlock = false;
-			// Check for block
-			if (preg_match('/^('.implode('|', self::$aPhpBlocks).')/', $aMatches[1]))
-			  $this->bBlock = $bBlock = true;
-			// FIXME: indenting here is probably for aesthetics, since it's trying to be careful with generating the right spacing.
-			$sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ($bBlock ? ' { ' : ';'), -2, false)  . '?>';
-			if ($bBlock)
-			  $sParsedEnd = '<?php } ?>';
+			$blockName = array();
+			// Check for custom block
+			if (preg_match('/^('.implode('|', array_keys(self::$aCustomBlocks)).')/', $aMatches[1], $blockName))
+			{
+				$sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ';', -2, false) . '?>';
+				$sParsedEnd = '<?php ' . self::$aCustomBlocks[$blockName[1]] . '();?>';
+			}
+			else
+			{
+				// Check for block
+				if (preg_match('/^('.implode('|', self::$aPhpBlocks).')/', $aMatches[1]))
+				  $this->bBlock = $bBlock = true;
+				// FIXME: indenting here is probably for aesthetics, since it's trying to be careful with generating the right spacing.
+				$sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ($bBlock ? ' { ' : ';'), -2, false)  . '?>';
+				if ($bBlock)
+				  $sParsedEnd = '<?php } ?>';
+			}
 		} else
 		// Text block
 		if (preg_match('/^'.self::TOKEN_TEXT_BLOCKS.'(.+)/', $sSource, $aMatches))
@@ -1014,6 +1046,14 @@ class HamlLine
 	protected static $aPhpBlocks = array('if', 'else', 'elseif', 'while', 'switch', 'for', 'do');
 
 	/**
+	 * List of custom blocks
+	 *
+	 * @var array
+	 *
+	 */
+  protected static $aCustomBlocks = array();
+
+	/**
 	 * Export array
 	 *
 	 * @return string
@@ -1223,23 +1263,6 @@ class HamlParser extends HamlLine {
 	{
 		$sFile = preg_replace('/(\S+) +\\'.self::TOKEN_BREAK.'[ \t]*\n[ \t]*/', '\\1 ', $sFile);
 		return $sFile;
-	}
-
-	/**
-	 * Return source of child
-	 *
-	 * @param integer Level
-	 * @return string
-	 */
-	public function getAsSource($iLevel)
-	{
-		$x = ($this->iIndent - $iLevel - 1) * self::INDENT;
-		$sSource = '';
-		if ($x >= 0)
-			$sSource = preg_replace('|^'.str_repeat(self::TOKEN_INDENT, ($iLevel + 1) * self::INDENT).'|', '', $this->sRealSource);
-		foreach ($this->aChildren as $oChild)
-			$sSource .= self::TOKEN_LINE.$oChild->getAsSource($iLevel);
-		return trim($sSource, self::TOKEN_LINE);
 	}
 
 	/**
