@@ -1522,7 +1522,7 @@ class HamlParser extends HamlLine {
 				$this->writeAttributes($sValue);
 			}
 			else if ($sValue !== null && $sValue !== false)
-				echo " $sName=\"".htmlentities($sValue).'"';
+				echo " $sName=\"".htmlentities($sValue, null, 'utf-8').'"';
 		}
 	}
 }
