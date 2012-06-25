@@ -547,10 +547,17 @@ class HamlLine
 			$sAutoVar = '';
 
 			// Parse options
-			while (preg_match('/\\'.self::TOKEN_OPTIONS_LEFT.'(.*?)\\'.self::TOKEN_OPTIONS_RIGHT.'/', $sSource, $aMatches))
+			
+			while (preg_match('/\\'.self::TOKEN_OPTIONS_LEFT.'(.*?)\\'.self::TOKEN_OPTIONS_RIGHT.'/', $sSource, $aMatches) && !empty($aMatches))
 			{
 				$sSource = str_replace($aMatches[0], '', $sSource);
 				$sOptions = preg_replace('/'.self::TOKEN_OPTION.'/', '"$1" =>', $aMatches[1]);
+				$aAttributes['_inline'][] = $sOptions;
+			}
+			while (preg_match('/(%|#|\.)\w+\\'.self::TOKEN_TERSER_LEFT.'(.*?)\\'.self::TOKEN_TERSER_RIGHT.'/', $sSource, $aMatches) && !empty($aMatches))
+			{
+				$sSource = str_replace(self::TOKEN_TERSER_LEFT.$aMatches[2].self::TOKEN_TERSER_RIGHT, '', $sSource);
+				$sOptions = preg_replace('/([\w-]+)=(("|\')[\w\d\s\/=;:$_@{}.,#-]+("|\'))/i', '"$1" => $2,', $aMatches[2]);
 				$aAttributes['_inline'][] = $sOptions;
 			}
 
@@ -998,8 +1005,21 @@ class HamlLine
 	const TOKEN_HAML_COMMENT = '-#';
 
 	/**
+	 * Begin html-style attirbutes
+	 */
+
+	const TOKEN_TERSER_LEFT  = '(';
+
+	/**
+	 * End html-style attributes
+	 */
+
+	const TOKEN_TERSER_RIGHT = ')';
+
+	/**
 	 * Number of TOKEN_INDENT to indent
 	 */
+
 	const INDENT = 2;
 
 	/**
