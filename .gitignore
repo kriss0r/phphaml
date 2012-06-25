@@ -1,1 +1,4 @@
 tmp/haml/*
+*~
+*.bak
+*.swp

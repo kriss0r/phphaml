@@ -496,7 +496,7 @@ class HamlLine
 			$sParsed = self::$aDoctypes[$aMatches[1]]."\n";
 		} else
 		// Internal comment
-		if (preg_match('/^\\'.self::TOKEN_COMMENT.'\\'.self::TOKEN_COMMENT.'/', $sSource))
+		if (preg_match('/^'.self::TOKEN_HAML_COMMENT.'/', $sSource))
 			return '';
 		else
 		// PHP instruction
@@ -639,7 +639,7 @@ class HamlLine
 				$inline = $aAttributes['_inline'];
 				unset($aAttributes['_inline']);
 				if (!empty($aAttributes) || !empty($sAutoVar) || !empty($inline))
-					$sAttributes = '<?php writeAttributes('.$this->arrayExport($aAttributes).(!empty($sAutoVar) ? ", \$this->parseSquareBrackets($sAutoVar)" : '' ).(!empty($inline)? ', array(' . implode($inline, ', ').')' : '') . '); ?>';
+					$sAttributes = '<?php HamlParser::writeAttributes('.$this->arrayExport($aAttributes).(!empty($sAutoVar) ? ", \HamlParser::parseSquareBrackets($sAutoVar)" : '' ).(!empty($inline)? ', array(' . implode($inline, ', ').')' : '') . '); ?>';
 				$this->bBlock = $this->oParent->bBlock;
 				$iLevelM = $this->oParent->bBlock || $this->bBlock ? -1 : 0;
 				// FIXME: this whole block is a mess!!!
@@ -993,6 +993,11 @@ class HamlLine
 	const TOKEN_TEXT_BLOCKS = ':';
 
 	/**
+	 * Haml silent comment
+	 */
+	const TOKEN_HAML_COMMENT = '-#';
+
+	/**
 	 * Number of TOKEN_INDENT to indent
 	 */
 	const INDENT = 2;
@@ -1155,6 +1160,34 @@ class HamlParser extends HamlLine {
 		$__haml_parser->setSource($sSource);
 		$__haml_parser->append($GLOBALS);
 		return $__haml_parser->fetch();
+	}
+   
+	protected $aCustomHelpers = array();
+
+	/**
+	 * Register helper function that could be later called inside template via  $this->registered_alias
+	 * <code>
+	 * -# escape title
+	 * %title= $this->e($meta_title)
+	 *	</code>
+	 *
+	 * @param string alias
+	 * @param callable callback
+	 */
+	public function registerFunc($alias, $callback) {
+		$call_name = null;
+		if(is_callable($callback, false, $call_name))
+			$this->aCustomHelpers[$alias] = $callback;
+	}
+	/**
+	 * call registered function
+	 * @param string name 
+	 * @param mixed arguments
+	 * @return mixed executed function result
+	 */
+	public function __call($name, $arguments) {
+		if(isset($this->aCustomHelpers[$name]))
+			return call_user_func_array($this->aCustomHelpers[$name], $arguments);
 	}
 
 	/**
@@ -1479,7 +1512,7 @@ class HamlParser extends HamlLine {
 	 * @param mixed Variable
 	 * @return array Attributes
 	 */
-	protected function parseSquareBrackets($mVariable)
+	public static function parseSquareBrackets($mVariable)
 	{
 		$sType = gettype($mVariable);
 		$aAttr = array();
@@ -1509,7 +1542,7 @@ class HamlParser extends HamlLine {
 	/**
 	 * Write attributes
 	 */
-	protected function writeAttributes()
+	public static function writeAttributes()
 	{
 		$aAttr = array();
 		// Left takes precedence because cultivated options were in
@@ -1519,7 +1552,7 @@ class HamlParser extends HamlLine {
 		ksort($aAttr);
 		foreach ($aAttr as $sName => $sValue){
 			if(is_integer($sName)){
-				$this->writeAttributes($sValue);
+				self::writeAttributes($sValue);
 			}
 			else if ($sValue !== null && $sValue !== false)
 				echo " $sName=\"".htmlentities($sValue, null, 'utf-8').'"';
@@ -1578,19 +1611,4 @@ function display_haml($sFilename, $aVariables = array(), $sTmp = true, $bGPSSC =
 	$__oHaml->display($sFilename);
 }
 
-function writeAttributes()	{
-		$aAttr = array();
-		// Left takes precedence because cultivated options were in
-		// argument 0
-		foreach (func_get_args() as $aArray)
-			$aAttr = array_merge($aArray, $aAttr);
-		ksort($aAttr);
-		foreach ($aAttr as $sName => $sValue){
-			if(is_integer($sName)){
-				writeAttributes($sValue);
-			}
-			else if ($sValue !== null && $sValue !== false)
-				echo " $sName=\"".htmlentities($sValue, null, 'utf-8').'"';
-		}
-	}
 ?>
