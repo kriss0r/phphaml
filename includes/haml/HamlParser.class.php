@@ -507,7 +507,7 @@ class HamlLine
 			$bBlock = false;
 			$blockName = array();
 			// Check for custom block
-			if (preg_match('/^('.implode('|', array_keys(self::$aCustomBlocks)).')/', $aMatches[1], $blockName))
+			if (preg_match('/^('.implode('|', array_keys(self::$aCustomBlocks)).')/', $aMatches[1], $blockName) && !empty(self::$aCustomBlocks))
 			{
 				$sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ';', -2, false) . '?>';
 				$sParsedEnd = '<?php ' . self::$aCustomBlocks[$blockName[1]] . '();?>';
@@ -639,7 +639,7 @@ class HamlLine
 				$inline = $aAttributes['_inline'];
 				unset($aAttributes['_inline']);
 				if (!empty($aAttributes) || !empty($sAutoVar) || !empty($inline))
-					$sAttributes = '<?php $this->writeAttributes('.$this->arrayExport($aAttributes).(!empty($sAutoVar) ? ", \$this->parseSquareBrackets($sAutoVar)" : '' ).(!empty($inline)? ', array(' . implode($inline, ', ').')' : '') . '); ?>';
+					$sAttributes = '<?php writeAttributes('.$this->arrayExport($aAttributes).(!empty($sAutoVar) ? ", \$this->parseSquareBrackets($sAutoVar)" : '' ).(!empty($inline)? ', array(' . implode($inline, ', ').')' : '') . '); ?>';
 				$this->bBlock = $this->oParent->bBlock;
 				$iLevelM = $this->oParent->bBlock || $this->bBlock ? -1 : 0;
 				// FIXME: this whole block is a mess!!!
@@ -1044,7 +1044,7 @@ class HamlLine
 	 * @var array
 	 *
 	 */
-	protected static $aPhpBlocks = array('if', 'else', 'elseif', 'while', 'switch', 'for', 'do');
+	protected static $aPhpBlocks = array('if', 'else', 'elseif', 'while', 'switch', 'for', 'do', 'function');
 
 	/**
 	 * List of custom blocks
@@ -1578,4 +1578,19 @@ function display_haml($sFilename, $aVariables = array(), $sTmp = true, $bGPSSC =
 	$__oHaml->display($sFilename);
 }
 
+function writeAttributes()	{
+		$aAttr = array();
+		// Left takes precedence because cultivated options were in
+		// argument 0
+		foreach (func_get_args() as $aArray)
+			$aAttr = array_merge($aArray, $aAttr);
+		ksort($aAttr);
+		foreach ($aAttr as $sName => $sValue){
+			if(is_integer($sName)){
+				writeAttributes($sValue);
+			}
+			else if ($sValue !== null && $sValue !== false)
+				echo " $sName=\"".htmlentities($sValue, null, 'utf-8').'"';
+		}
+	}
 ?>

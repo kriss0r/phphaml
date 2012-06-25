@@ -32,7 +32,8 @@ abstract class CommonElement
 	 * @param CommonElement Parent element
 	 * @param CommonElementsList Children
 	 */
-	abstract public function __construct($parent = null, $children = null);
+	public function __construct($parent = null, $children = null) {
+	}
 
 	/**
 	 * Parent of element
