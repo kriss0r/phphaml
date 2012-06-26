@@ -554,10 +554,37 @@ class HamlLine
 				$sOptions = preg_replace('/'.self::TOKEN_OPTION.'/', '"$1" =>', $aMatches[1]);
 				$aAttributes['_inline'][] = $sOptions;
 			}
-			while (preg_match('/(%|#|\.)\w+\\'.self::TOKEN_TERSER_LEFT.'(.*?)\\'.self::TOKEN_TERSER_RIGHT.'/', $sSource, $aMatches) && !empty($aMatches))
-			{
-				$sSource = str_replace(self::TOKEN_TERSER_LEFT.$aMatches[2].self::TOKEN_TERSER_RIGHT, '', $sSource);
-				$sOptions = preg_replace('/([\w-]+)=(("|\')[\w\d\s\/=;:$_@{}.,#-]+("|\'))/i', '"$1" => $2,', $aMatches[2]);
+
+			if(preg_match('/(%|#|\.)\w+\\'.self::TOKEN_TERSER_LEFT.'/i', $sSource)) {
+				$n = strlen($sSource);
+				$depth = $begin = $end = 0;
+				for($i = 0; $i < $n; $i++) {
+					if($sSource[$i] == '(') {
+						++$depth;
+						if($depth == 1) $begin = $i;
+					}
+					elseif($sSource[$i] == ')') {
+						--$depth;
+						if($depth == 0)  {
+							$end = $i+1; break;
+						}
+					}
+				}
+				$match = substr($sSource, $begin, $end-$begin);
+				$sSource = str_replace($match, '', $sSource);
+				$match = trim(substr($match, 1, strlen($match)-2));
+				$ret = array();
+
+				$o = preg_replace("/([\w-]+)\s*=\s*/i", '$1 => ',$match);
+
+				$values = preg_split("/(\w+)\s*=>\s*/i", trim($o), -1, PREG_SPLIT_NO_EMPTY);
+
+				preg_match_all("/(\w+)\s*=>\s*/i", $o, $keys);
+
+				for($i = 0; $i < count($keys[0]); $i++) 
+					$ret[] = "\"{$keys[1][$i]}\" => ".trim($values[$i]);
+
+				$sOptions = implode(', ', $ret);#preg_replace(self::TOKEN_TERSER_CONTENT, '"$1" => $2,', $aMatches[2]);
 				$aAttributes['_inline'][] = $sOptions;
 			}
 
@@ -1009,11 +1036,7 @@ class HamlLine
 	 */
 
 	const TOKEN_TERSER_LEFT  = '(';
-
-	/**
-	 * End html-style attributes
-	 */
-
+	const TOKEN_TERSER_CONTENT = '/([\w-]+)\s*=\s*(("|\')[\w\d\s\/=;:$_@{}.,#-]+("|\'))/i';
 	const TOKEN_TERSER_RIGHT = ')';
 
 	/**
@@ -1090,8 +1113,7 @@ class HamlLine
 		$aArray = $aNArray = array();
 		foreach (func_get_args() as $aArg)
 			$aArray = array_merge($aArray, $aArg);
-		foreach ($aArray as $sKey => $sValue)
-		{
+		foreach ($aArray as $sKey => $sValue) {
 			if (!preg_match('/[\'$"()]/', $sValue))
 				$sValue = "'$sValue'";
 			$aNArray[] = "'$sKey' => $sValue";
