@@ -92,3 +92,11 @@ So far the patches included here are:
 * whitespace eaters. HAML defines two element modifiers that eat
   whitespace: %foo> and %foo<. PHPHaml upstream supports neither; we
   only support the outside-the-element eater (%foo>).
+
+* html-style attributes::
+   %input( type="text" onclick="this.value = 'cliked'; this.attributes.disabled = 'disabled';" value='Click me' )
+
+* Silent haml comments -#::
+  -# I am comment
+    And i am
+      
