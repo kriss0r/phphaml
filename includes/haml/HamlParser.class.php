@@ -583,7 +583,7 @@ class HamlLine
 				$match = trim(substr($match, 1, strlen($match)-2));
 				$ret = array();
 
-				$o = preg_replace("/([\w-]+)\s*=\s*([\"'($])/i", '$1 => $2',$match);
+				$o = preg_replace("/(^|\s+)([\w-]+)\s*=\s*([\"'($])/i", '$2 => $3',$match);
 
 				$values = preg_split("/(\w+)\s*=>\s*/i", trim($o), -1, PREG_SPLIT_NO_EMPTY);
 
