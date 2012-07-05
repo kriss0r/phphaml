@@ -94,9 +94,11 @@ So far the patches included here are:
   only support the outside-the-element eater (%foo>).
 
 * html-style attributes::
-   %input( type="text" onclick="this.value = 'cliked'; this.attributes.disabled = 'disabled';" value='Click me' )
 
-* Silent haml comments -#::
-  -# I am comment
-    And i am
+      %input( type="text" onclick="this.value = 'cliked'; this.attributes.disabled = 'disabled';" value='Click me' )
+
+* Silent haml comments -# ::
+
+      -# I am comment
+        And i am
       
