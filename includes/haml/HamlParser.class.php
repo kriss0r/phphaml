@@ -146,8 +146,8 @@ class HamlLine
 			$this->setPath($sPath);
 		$this->bCompile = $bCompile;
 		if (is_string($bCompile))
-			$this->setTmp($bCompile); else
-		if ($sPath)
+         $this->setTmp($bCompile); 
+      elseif ($sPath)
 			$this->setTmp($sPath);
 		else
 			$this->setTmp(ini_get('session.save_path'));
@@ -554,10 +554,15 @@ class HamlLine
 				$sOptions = preg_replace('/'.self::TOKEN_OPTION.'/', '"$1" =>', $aMatches[1]);
 				$aAttributes['_inline'][] = $sOptions;
 			}
+			
+			/**
+			 * html-style attributes parsing
+			 */
 
 			if(preg_match('/(%|#|\.)\w+\\'.self::TOKEN_TERSER_LEFT.'/i', $sSource)) {
 				$n = strlen($sSource);
 				$depth = $begin = $end = 0;
+				//find valid ending ')'
 				for($i = 0; $i < $n; $i++) {
 					if($sSource[$i] == '(') {
 						++$depth;
@@ -570,12 +575,15 @@ class HamlLine
 						}
 					}
 				}
+				//get content
 				$match = substr($sSource, $begin, $end-$begin);
+				//remove it
 				$sSource = str_replace($match, '', $sSource);
+				//remove unnecessary ()
 				$match = trim(substr($match, 1, strlen($match)-2));
 				$ret = array();
 
-				$o = preg_replace("/([\w-]+)\s*=\s*/i", '$1 => ',$match);
+				$o = preg_replace("/([\w-]+)\s*=\s*([\"'($])/i", '$1 => $2',$match);
 
 				$values = preg_split("/(\w+)\s*=>\s*/i", trim($o), -1, PREG_SPLIT_NO_EMPTY);
 
@@ -584,7 +592,7 @@ class HamlLine
 				for($i = 0; $i < count($keys[0]); $i++) 
 					$ret[] = "\"{$keys[1][$i]}\" => ".trim($values[$i]);
 
-				$sOptions = implode(', ', $ret);#preg_replace(self::TOKEN_TERSER_CONTENT, '"$1" => $2,', $aMatches[2]);
+				$sOptions = implode(', ', $ret);
 				$aAttributes['_inline'][] = $sOptions;
 			}
 
