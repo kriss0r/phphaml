@@ -467,13 +467,36 @@ class HamlLine
   {
     self::$aCustomBlocks[$begin] = $end;
   }
+	/**
+	 * Parse { brackets in line
+	 */
+	private function parseOpts(&$in) {
+		$depth = 0;
+		$begin = $end = 0;
+		for($i = 0, $len = strlen($in); $i < $len; $i++) {
+			if($in[$i] == '{') {
+				if($depth == 0) $begin = $i;
+				$depth++;
+			}
+			
+			if($in[$i] == '}') {
+				$depth--;
+				if($depth == 0) $end = $i;
+			}
 
+		}
+		$result = preg_replace('/'.self::TOKEN_OPTION.'/', '"$1" =>', substr($in, $begin+1, $end-$begin-1));
+		$in = str_replace(substr($in, $begin, $end-$begin+1), '', $in);
+		return $result;
+	}
+	
 	/**
 	 * Parse line
 	 *
 	 * @param string Line
 	 * @return string
 	 */
+
 	public function parseLine($sSource)
 	{
 		$sParsed = '';
@@ -545,15 +568,10 @@ class HamlLine
 			$sToParse = '';
 			$sContent = '';
 			$sAutoVar = '';
-
-			// Parse options
 			
-			while (preg_match('/\\'.self::TOKEN_OPTIONS_LEFT.'(.*?)\\'.self::TOKEN_OPTIONS_RIGHT.'/', $sSource, $aMatches) && !empty($aMatches))
-			{
-				$sSource = str_replace($aMatches[0], '', $sSource);
-				$sOptions = preg_replace('/'.self::TOKEN_OPTION.'/', '"$1" =>', $aMatches[1]);
-				$aAttributes['_inline'][] = $sOptions;
-			}
+			// parse options
+			if(preg_match('/(#|%|\.)\w+\\'.self::TOKEN_OPTIONS_LEFT.'/i', $sSource)) 
+				$aAttributes['_inline'][] = $this->parseOpts($sSource);
 			
 			/**
 			 * html-style attributes parsing
@@ -583,8 +601,7 @@ class HamlLine
 				$match = trim(substr($match, 1, strlen($match)-2));
 				$ret = array();
 
-				$o = preg_replace("/(^|\s+)([\w-]+)\s*=\s*([\"'($])/i", '$2 => $3',$match);
-
+				$o = preg_replace("/(^|\s+)([\w-]+)\s*=\s*([\"'($])/i", ' $2 => $3',$match);
 				$values = preg_split("/(\w+)\s*=>\s*/i", trim($o), -1, PREG_SPLIT_NO_EMPTY);
 
 				preg_match_all("/(\w+)\s*=>\s*/i", $o, $keys);
@@ -1239,6 +1256,31 @@ class HamlParser extends HamlLine {
 		if(isset($this->aCustomHelpers[$name]))
 			return call_user_func_array($this->aCustomHelpers[$name], $arguments);
 	}
+	
+	/**
+	 * function transforms multiline option lists into single line in order to parse them normally
+	 *
+	 * depth(A|B) are level controls, which prevent from bracket missunderstanding
+	 */
+	private function preParse(&$sSource) {
+		$depthA = $depthB = 0;
+		for($i = 0, $len = strlen($sSource); $i < $len; $i++) {
+			if($sSource[$i] == '{' && !$depthB)
+				$depthA++;
+			
+			if($sSource[$i] == '}' && !$depthB) 
+				$depthA--;
+
+			if($sSource[$i] == '(' && !$depthA)
+				$depthB++;
+
+			if($sSource[$i] == ')' && !$depthA) 
+				$depthB--;
+
+			if($sSource[$i] == "\n" && ($depthA || $depthB)) 
+				$sSource[$i] = ' ';
+		}
+	}
 
 	/**
 	 * Render the source or file
@@ -1248,6 +1290,7 @@ class HamlParser extends HamlLine {
 	 */
 	public function render(array $aContext = array())
 	{
+		$this->preParse($this->sSource);
 		$__aSource = explode(self::TOKEN_LINE, $this->sRealSource = $this->sSource = $this->parseBreak($this->sSource));
 		$__sCompiled = '';
 		$__oCache = new CommonCache($this->sTmp, 'hphp', $this->sSource);
