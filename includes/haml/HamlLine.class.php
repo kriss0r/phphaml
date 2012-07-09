@@ -6,8 +6,7 @@
  * Handling includes, context/variables, filters etc.
  * happen in HamlParser.
  */
-class HamlLine
-{
+class HamlLine {
 	/**
 	 * Haml source
 	 *
@@ -520,7 +519,7 @@ class HamlLine
                   $sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ';', -2, false) . '?>';
                   $sParsedEnd = '<?php ' . self::$aCustomBlocks[$blockName[1]] . '();?>';
                } else {
-                 if(preg_match('/^case /', $aMatches[1])) {
+                 if(preg_match('/^(case|default)\s*/', $aMatches[1])) {
                    $sParsedBegin = '<?php ' . $this->indent($aMatches[1].':', -2, false) . "?>\n";
                    $sParsedEnd = "<?php break; ?>\n"; 
                  } else {
@@ -677,7 +676,8 @@ class HamlLine
 					}
 					else
 						$sContent = '';
-				}
+            } 
+
 				// Match translating
 				if (preg_match('/\\'.self::TOKEN_TRANSLATE.'$/', $sToParse, $aMatches))
 				{

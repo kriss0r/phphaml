@@ -15,6 +15,22 @@ So far the patches included here are:
   However, upstream breaks on this "else" because the regex being used
   to look for this case doesn't match the code that generates it.
 
+* switch support::
+
+    - switch($error)
+      - case 'captcha'
+        invalid captcha code
+      - case 'empty_name'
+        Please enter your name
+      - case 'empty_comment'
+        Please enter your message
+      - default
+        unrecognisable error
+
+  However, multiple case statemetns still unsupported::
+    - case 0
+    - case 1
+  
 * dashes in id names: fix a bug where ids like ``#abc-def`` weren't
   recognized as XHTML ids.
 
