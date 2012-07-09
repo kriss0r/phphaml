@@ -491,52 +491,62 @@ class HamlLine
 		// Dynamic including
 		if (preg_match('/^'.self::TOKEN_INCLUDE.self::TOKEN_PARSE_PHP.' (.*)/', $sSource, $aMatches) && $this->embedCode())
 		{
-			return ($this->isDebug() ? "{$this->aDebug['line']}:\t{$aMatches[1]} == <?php var_export({$aMatches[1]}) ?>\n\n" : '') . "<?php echo \$this->indent(\$this->fetch(\$this->getFilename({$aMatches[1]})), $this->iIndent, true, false); ?>";
+         return ($this->isDebug() ?
+             "{$this->aDebug['line']}:\t{$aMatches[1]} == <?php var_export({$aMatches[1]}) ?>\n\n" : '') 
+              . "<?php echo \$this->indent(\$this->fetch(\$this->getFilename({$aMatches[1]})), $this->iIndent, true, false); ?>";
 		} else
-		// Doctype parsing
-		if (preg_match('/^'.self::TOKEN_DOCTYPE.'(.*)/', $sSource, $aMatches))
-		{
-			$aMatches[1] = trim($aMatches[1]);
-			if ($aMatches[1] == '')
-			  $aMatches[1] = '1.1';
-			$sParsed = self::$aDoctypes[$aMatches[1]]."\n";
-		} else
-		// Internal comment
-		if (preg_match('/^'.self::TOKEN_HAML_COMMENT.'/', $sSource))
-			return '';
-		else
-		// PHP instruction
-		if (preg_match('/^'.self::TOKEN_INSTRUCTION_PHP.' (.*)/', $sSource, $aMatches))
-		{
-			if (!$this->embedCode())
-				return '';
-			$bBlock = false;
-			$blockName = array();
-			// Check for custom block
-			if (preg_match('/^('.implode('|', array_keys(self::$aCustomBlocks)).')/', $aMatches[1], $blockName) && !empty(self::$aCustomBlocks))
-			{
-				$sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ';', -2, false) . '?>';
-				$sParsedEnd = '<?php ' . self::$aCustomBlocks[$blockName[1]] . '();?>';
-			}
-			else
-			{
-				// Check for block
-				if (preg_match('/^('.implode('|', self::$aPhpBlocks).')/', $aMatches[1]))
-				  $this->bBlock = $bBlock = true;
-				// FIXME: indenting here is probably for aesthetics, since it's trying to be careful with generating the right spacing.
-				$sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ($bBlock ? ' { ' : ';'), -2, false)  . '?>';
-				if ($bBlock)
-				  $sParsedEnd = '<?php } ?>';
-			}
-		} else
+        // Doctype parsing
+        if (preg_match('/^'.self::TOKEN_DOCTYPE.'(.*)/', $sSource, $aMatches))
+        {
+           $aMatches[1] = trim($aMatches[1]);
+           if ($aMatches[1] == '')
+             $aMatches[1] = '1.1';
+           $sParsed = self::$aDoctypes[$aMatches[1]]."\n";
+        } else
+          // Internal comment
+          if (preg_match('/^'.self::TOKEN_HAML_COMMENT.'/', $sSource))
+             return '';
+          else
+          // PHP instruction
+            if (preg_match('/^'.self::TOKEN_INSTRUCTION_PHP.' (.*)/', $sSource, $aMatches))
+            {
+               if (!$this->embedCode())
+                  return '';
+               $bBlock = false;
+               $blockName = array();
+               // Check for custom block
+               if (preg_match('/^('.implode('|', array_keys(self::$aCustomBlocks)).')/', $aMatches[1], $blockName) && !empty(self::$aCustomBlocks))
+               {
+                  $sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ';', -2, false) . '?>';
+                  $sParsedEnd = '<?php ' . self::$aCustomBlocks[$blockName[1]] . '();?>';
+               } else {
+                 if(preg_match('/^case /', $aMatches[1])) {
+                   $sParsedBegin = '<?php ' . $this->indent($aMatches[1].':', -2, false) . "?>\n";
+                   $sParsedEnd = "<?php break; ?>\n"; 
+                 } else {
+                  // Check for block
+                  if (preg_match('/^('.implode('|', self::$aPhpBlocks).')/', $aMatches[1]))
+                    $this->bBlock = $bBlock = true;
+                  // FIXME: indenting here is probably for aesthetics, since it's trying to be careful with generating the right spacing.
+                  $sParsedBegin = '<?php ' . $this->indent($aMatches[1] . ($bBlock ? ' { ' : ';'), -2, false)  . "?>\n";
+                  if ($bBlock)
+                    $sParsedEnd = "<?php } ?>\n";
+                 }
+               }
+            } else
 		// Text block
 		if (preg_match('/^'.self::TOKEN_TEXT_BLOCKS.'(.+)/', $sSource, $aMatches))
 		{
 			$sParsed = $this->indent($this->parseTextBlock($aMatches[1], $this->getAsSource($this->iIndent)));
 			$this->aChildren = array();
 		} else
-		// Check for PHP
-		if (preg_match('/^'.self::TOKEN_PARSE_PHP.' (.*)/', $sSource, $aMatches))
+        // Check for PHP
+      if (preg_match('/^'.self::TOKEN_ESCAPE_HTML.' (.*)/', $sSource, $aMatches))
+			if ($this->embedCode())
+				$sParsed = $this->indent("<?php echo htmlspecialchars({$aMatches[1]}, ENT_QUOTES, 'UTF-8'); ?>")."\n";
+			else
+				$sParsed = "\n";
+      elseif (preg_match('/^'.self::TOKEN_PARSE_PHP.' (.*)/', $sSource, $aMatches))
 			if ($this->embedCode())
 				$sParsed = $this->indent("<?php echo {$aMatches[1]}; ?>")."\n";
 			else
@@ -651,8 +661,14 @@ class HamlLine
 				if (preg_match_all('/'.self::TOKEN_WHITESPACE_INSIDE.'/', $sToParse, $aMatches))
 					$this->bWhitespaceInside = true;
 				// Check for PHP
-				if (preg_match('/'.self::TOKEN_PARSE_PHP.'/', $sToParse))
-				{
+            if(preg_match('/'.self::TOKEN_ESCAPE_HTML.'/', $sToParse)) {
+              if($this->embedCode()) {
+                $sContentOld = $sContent;
+                $sContent = "<?php echo htmlspecialchars($sContent, ENT_QUOTES, 'UTF-8'); ?>\n";
+                $bPhp = true;
+              } else $sContent = '';
+              
+            } elseif (preg_match('/'.self::TOKEN_PARSE_PHP.'/', $sToParse)) {
 					if ($this->embedCode())
 					{
 						$sContentOld = $sContent;
@@ -1045,12 +1061,14 @@ class HamlLine
 
 	const TOKEN_TERSER_LEFT  = '(';
 	const TOKEN_TERSER_CONTENT = '/([\w-]+)\s*=\s*(("|\')[\w\d\s\/=;:$_@{}.,#-]+("|\'))/i';
-	const TOKEN_TERSER_RIGHT = ')';
+   const TOKEN_TERSER_RIGHT = ')';
+
+   const TOKEN_ESCAPE_HTML = '&=';
 
 	/**
 	 * Number of TOKEN_INDENT to indent
 	 */
-
+   
 	const INDENT = 2;
 
 	/**
