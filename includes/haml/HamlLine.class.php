@@ -348,7 +348,13 @@ class HamlLine {
 	 *
 	 * @var array
 	 */
-	protected static $aBlocks = array();
+	protected static $aBlocks = array(
+		'javascript' => '_js',
+		'css' => '_css',
+		'escaped' => '_escaped',
+		'plain' => '_plain',
+		'php' => '_php'
+	);
 
 	/**
 	 * Register block
@@ -676,8 +682,7 @@ class HamlLine {
 					}
 					else
 						$sContent = '';
-            } 
-
+				}
 				// Match translating
 				if (preg_match('/\\'.self::TOKEN_TRANSLATE.'$/', $sToParse, $aMatches))
 				{

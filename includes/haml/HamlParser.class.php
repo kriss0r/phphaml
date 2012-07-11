@@ -13,6 +13,7 @@
 
 require_once dirname(__FILE__) . '/../common/CommonCache.class.php';
 require_once dirname(__FILE__) . '/HamlException.class.php';
+require_once dirname(__FILE__) . '/HamlFilters.php';
 require_once dirname(__FILE__) . '/HamlLine.class.php';
 
 /**
