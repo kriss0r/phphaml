@@ -353,7 +353,8 @@ class HamlLine {
 		'css' => '_css',
 		'escaped' => '_escaped',
 		'plain' => '_plain',
-		'php' => '_php'
+      'php' => '_php',
+      'cdata' => '_cdata'
 	);
 
 	/**
@@ -485,8 +486,7 @@ class HamlLine {
 	 * @return string
 	 */
 
-	public function parseLine($sSource)
-	{
+	public function parseLine($sSource) {
 		$sParsed = '';
 		$sRealBegin = '';
 		$sRealEnd = '';
@@ -494,8 +494,7 @@ class HamlLine {
 		$sParsedEnd = '';
 		$bParse = true;
 		// Dynamic including
-		if (preg_match('/^'.self::TOKEN_INCLUDE.self::TOKEN_PARSE_PHP.' (.*)/', $sSource, $aMatches) && $this->embedCode())
-		{
+		if (preg_match('/^'.self::TOKEN_INCLUDE.self::TOKEN_PARSE_PHP.' (.*)/', $sSource, $aMatches) && $this->embedCode()) {
          return ($this->isDebug() ?
              "{$this->aDebug['line']}:\t{$aMatches[1]} == <?php var_export({$aMatches[1]}) ?>\n\n" : '') 
               . "<?php echo \$this->indent(\$this->fetch(\$this->getFilename({$aMatches[1]})), $this->iIndent, true, false); ?>";

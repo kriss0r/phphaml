@@ -130,8 +130,25 @@ class HamlParser extends HamlLine {
 	 *
 	 * depth(A|B) are level controls, which prevent from bracket missunderstanding
 	 */
-	private function preParse(&$sSource) {
-		$depthA = $depthB = 0;
+    private function preParse(&$sSource) {
+       preg_match_all('#(\#|\.|%)\w+\{((?>[^\{\}]+)|(?R))*\}#x', $sSource, $matches);
+       preg_match_all('#(\#|\.|%)\w+\(((?>[^\(\)]+)|(?R))*\)#x', $sSource, $matches2);
+         
+       $_matches = $_replaces = array();
+       foreach($matches[2] as $m) {
+          if(strpos($m, "\xA") !== FALSE) {
+             $_replaces[] = str_replace(array("\n", "\r"), '', $m);
+             $_matches[] = $m;
+          }
+       } 
+       foreach($matches2[2] as $m) {
+          if(strpos($m, "\xA") !== FALSE) {
+             $_replaces[] = str_replace(array("\n", "\r"), '', $m);
+             $_matches[] = $m;
+          }
+       }
+       $sSource = str_replace($_matches, $_replaces, $sSource);
+	/*	$depthA = $depthB = 0;
 		for($i = 0, $len = strlen($sSource); $i < $len; $i++) {
 			if($sSource[$i] == '{' && !$depthB)
 				$depthA++;
@@ -147,8 +164,8 @@ class HamlParser extends HamlLine {
 
 			if($sSource[$i] == "\n" && ($depthA || $depthB)) 
 				$sSource[$i] = ' ';
-		}
-	}
+      }*/
+  }
 
 	/**
 	 * Render the source or file
@@ -499,12 +516,10 @@ class HamlParser extends HamlLine {
 		$aAttr['id'] = "{$aAttr['class']}_$sId";
 		return $aAttr;
 	}
-
 	/**
 	 * Write attributes
 	 */
-	public static function writeAttributes()
-	{
+	public static function writeAttributes() {
 		$aAttr = array();
 		// Left takes precedence because cultivated options were in
 		// argument 0
@@ -515,8 +530,13 @@ class HamlParser extends HamlLine {
 			if(is_integer($sName)){
 				self::writeAttributes($sValue);
 			}
-			else if ($sValue !== null && $sValue !== false)
+			else if ($sValue !== null && $sValue !== false) {
+				if($sName == 'id' && is_array($sValue))
+					$sValue = implode('_', array_filter($sValue));
+				if($sName == 'class' && is_array($sValue))
+					$sValue = implode(' ', array_filter($sValue));
 				echo " $sName=\"".htmlentities($sValue, null, 'utf-8').'"';
+			}
 		}
 	}
 }
