@@ -74,6 +74,20 @@ require_once dirname(__FILE__) . '/HamlLine.class.php';
  * @subpackage Haml
  */
 class HamlParser extends HamlLine {
+
+	/**
+	 * Indention token
+	 * gets set the first time the indentation token is encountered
+	 */
+	 	
+	public static $TOKEN_INDENT = null;
+	 
+	/**
+	 * Number of TOKEN_INDENT to indent
+	 */
+	    
+	public static $INDENT = null;
+
 	/**
 	 * Render Haml. Append globals variables
 	 *
@@ -211,7 +225,7 @@ class HamlParser extends HamlLine {
 					$__iIndentLevel = $__iLevel;
 					$__sLine = preg_replace('/\\'.self::TOKEN_LEVEL."$__iIndent$/", '', $__sLine);
 				}
-				$__sLine = str_repeat(self::TOKEN_INDENT, $__iIndent * self::INDENT) . $__sLine;
+				$__sLine = str_repeat(HamlParser::$TOKEN_INDENT, $__iIndent * HamlParser::$INDENT) . $__sLine;
 				$__aSource[$__iKey] = $__sLine;
 				if (preg_match('/^(\s*)'.self::TOKEN_INCLUDE.' (.+)/', $__sLine, $aMatches))
 				{
