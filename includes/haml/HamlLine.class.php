@@ -98,30 +98,36 @@ class HamlLine {
 	 */
 	public $sTag = 'div';
 
-	/**
-	 * The constructor.
-	 *
-	 * Create Haml parser. Second argument can be path to
-	 * temporary directory or boolean if true then templates
-	 * are compiled to templates path else if false then
-	 * templates are compiled on every run
-	 * <code>
-	 * <?php
-	 * require_once './includes/haml/HamlParser.class.php';
-	 *
-	 * $parser = new HamlParser('./tpl', './tmp');
-	 * $foo = 'bar';
-	 * $parser->assign('foo', $foo);
-	 * $parser->display('mainpage.haml');
-	 * ?>
-	 * </code>
-	 *
-	 * @param string Path to files
-	 * @param boolean/string Compile templates (can be path)
-	 * @param object Parent parser
-	 * @param array Array with debug informations
-	 * @param boolean Is used dynamic including
-	 */
+   /**
+    * The constructor.
+    *
+    * Create Haml parser. Second argument can be path to
+    * temporary directory or boolean if true then templates
+    * are compiled to templates path else if false then
+    * templates are compiled on every run
+    * <code>
+    * <?php
+    * require_once './includes/haml/HamlParser.class.php';
+    *
+    * $parser = new HamlParser('./tpl', './tmp');
+    * $foo = 'bar';
+    * $parser->assign('foo', $foo);
+    * $parser->display('mainpage.haml');
+    * ?>
+    * </code>
+    *
+    * @param bool $sPath
+    * @param bool $bCompile
+    * @param null $oParent
+    * @param null $aDebug
+    * @param bool $bInside
+    *
+    * @internal param \Path $string to files
+    * @internal param $boolean /string Compile templates (can be path)
+    * @internal param \Parent $object parser
+    * @internal param Array $array with debug informations
+    * @internal param \Is $boolean used dynamic including
+    */
 	public function __construct($sPath = false, $bCompile = true, $oParent = null, $aDebug = null, $bInside = false)
 	{
 		if ($sPath)
@@ -212,12 +218,14 @@ class HamlLine {
 		return trim($sSource, self::TOKEN_LINE);
 	}
 
-	/**
-	 * Set parent parser. Used internally.
-	 *
-	 * @param object Parent parser
-	 * @return object
-	 */
+   /**
+    * Set parent parser. Used internally.
+    *
+    * @param HamlLine $oParent
+    *
+    * @internal param \Parent $object parser
+    * @return object
+    */
 	public function setParent(HamlLine $oParent)
 	{
 		$this->oParent = $oParent;
@@ -357,24 +365,26 @@ class HamlLine {
       'cdata' => '_cdata'
 	);
 
-	/**
-	 * Register block
-	 *
-	 * Text processing blocks are very usefull stuff ;)
-	 * <code>
-	 * // ...
-	 * %code.checksum
-	 * $tpl = <<<__TPL__
-	 *   :md5
-	 *     Count MD5 checksum of me
-	 * __TPL__;
-	 * HamlParser::registerBlock('md5', 'md5');
-	 * $parser->display($tpl); // <code class="checksum">iejmgioemvijeejvijioj323</code>
-	 * </code>
-	 *
-	 * @param mixed Callable
-	 * @param string Name
-	 */
+   /**
+    * Register block
+    *
+    * Text processing blocks are very usefull stuff ;)
+    * <code>
+    * // ...
+    * %code.checksum
+    * $tpl = <<<__TPL__
+    *   :md5
+    *     Count MD5 checksum of me
+    * __TPL__;
+    * HamlParser::registerBlock('md5', 'md5');
+    * $parser->display($tpl); // <code class="checksum">iejmgioemvijeejvijioj323</code>
+    * </code>
+    *
+    * @param      string Name
+    * @param bool $sName
+    *
+    * @internal param Callable $mixed
+    */
 	public static function registerBlock($mCallable, $sName = false)
 	{
 		if (!$sName)
@@ -478,7 +488,73 @@ class HamlLine {
 		$in = str_replace(substr($in, $begin, $end-$begin+1), '', $in);
 		return $result;
 	}
-	
+
+   private function parseInterpolation($sContent) {
+      $_sContent = $sContent;
+            # check for interpolation
+      if(strpos($sContent, self::TOKEN_INTERPOLATION_START) !== false) {
+         $depth = 0;
+
+         $double_opened = false;
+         $single_opened = false;
+
+         $original = '';
+         for($i = 0, $l = strlen($sContent); $i < $l; $i++) {
+            # string detection
+            if($sContent[$i] == '"' && !$double_opened && !$single_opened) {
+               $double_opened = true;
+               $i++;
+            }
+
+            if($sContent[$i] == "'" && !$single_opened && !$double_opened) {
+               $single_opened = true;
+               $i++;
+
+            }
+
+            # attempt interpolation only inside strings and ignore string nesting
+            if($single_opened || $double_opened) {
+               $chunk = substr($sContent,$i,2);
+
+               # TODO ignore escaped interpolation \#{
+               if($chunk == self::TOKEN_INTERPOLATION_START) {
+                  $depth++;
+                  $i += 2;
+               }
+
+               if($sContent[$i] == '{') $depth++;
+               if($sContent[$i] == '}') $depth--;
+
+               if($depth) #grab contents of an #{ }
+                  $original .= $sContent[$i];
+
+               if(!$depth && $original) {
+                  # detect string type
+                  $quote = '';
+                  if($single_opened)
+                     $quote = "'";
+                  elseif($double_opened)
+                     $quote = '"';
+
+                  $_sContent = str_replace('#{'.$original.'}', "$quote.(".$original.").$quote", $_sContent);
+                  $original = '';
+               }
+            }
+
+            #string end detection
+            #
+            if($single_opened && !$double_opened && $sContent[$i] == "'")
+               $single_opened = false;
+
+            if($double_opened && !$single_opened && $sContent[$i] == '"')
+               $double_opened = false;
+
+         }
+      }
+
+      return $_sContent;
+   }
+
 	/**
 	 * Parse line
 	 *
@@ -552,7 +628,7 @@ class HamlLine {
 				$sParsed = "\n";
       elseif (preg_match('/^'.self::TOKEN_PARSE_PHP.' (.*)/', $sSource, $aMatches))
 			if ($this->embedCode())
-				$sParsed = $this->indent("<?php echo {$aMatches[1]}; ?>")."\n";
+				$sParsed = $this->indent("<?php echo {$this->parseInterpolation($aMatches[1])}; ?>")."\n";
 			else
 				$sParsed = "\n";
 		else
@@ -675,71 +751,9 @@ class HamlLine {
             } elseif (preg_match('/'.self::TOKEN_PARSE_PHP.'/', $sToParse)) {
 					if ($this->embedCode())
 					{
-						$sContentOld = $_sContent = $sContent;
+						$sContentOld = $sContent;
 
-                  # TODO make it reusable after testing
-                  # check for interpolation
-                  if(strpos($sContent, self::TOKEN_INTERPOLATION_START) !== false) {
-                     $depth = 0;
-
-                     $double_opened = false;
-                     $single_opened = false;
-
-                     $original = '';
-                     for($i = 0, $l = strlen($sContent); $i < $l; $i++) {
-                        # string detection
-                        if($sContent[$i] == '"' && !$double_opened && !$single_opened) {
-                           $double_opened = true;
-                           $i++;
-                        }
-
-                        if($sContent[$i] == "'" && !$single_opened && !$double_opened) {
-                           $single_opened = true;
-                           $i++;
-
-                        }
-
-                        # attempt interpolation only inside strings and ignore string nesting
-                        if($single_opened || $double_opened) {
-                           $chunk = substr($sContent,$i,2);
-
-                           # TODO ignore escaped interpolation \#{
-                           if($chunk == self::TOKEN_INTERPOLATION_START) {
-                              $depth++;
-                              $i += 2;
-                           }
-
-                           if($sContent[$i] == '{') $depth++;
-                           if($sContent[$i] == '}') $depth--;
-
-                           if($depth) #grab contents of an #{ }
-                              $original .= $sContent[$i];
-
-                           if(!$depth && $original) {
-                              # detect string type
-                              $quote = '';
-                              if($single_opened)
-                                 $quote = "'";
-                              elseif($double_opened)
-                                 $quote = '"';
-
-                              $_sContent = str_replace('#{'.$original.'}', "$quote.(".$original.").$quote", $_sContent);
-                              $original = '';
-                           }
-                        }
-
-                        #string end detection
-                        #
-                        if($single_opened && !$double_opened && $sContent[$i] == "'")
-                           $single_opened = false;
-
-                        if($double_opened && !$single_opened && $sContent[$i] == '"')
-                           $double_opened = false;
-
-                     }
-                  }
-
-                  $sContent = $_sContent;
+                  $sContent = $this->parseInterpolation($sContent);
 
 						$sContent = "<?php echo $sContent; ?>\n";
 						$bPhp = true;
