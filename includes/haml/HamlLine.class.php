@@ -675,7 +675,72 @@ class HamlLine {
             } elseif (preg_match('/'.self::TOKEN_PARSE_PHP.'/', $sToParse)) {
 					if ($this->embedCode())
 					{
-						$sContentOld = $sContent;
+						$sContentOld = $_sContent = $sContent;
+
+                  # TODO make it reusable after testing
+                  # check for interpolation
+                  if(strpos($sContent, self::TOKEN_INTERPOLATION_START) !== false) {
+                     $depth = 0;
+
+                     $double_opened = false;
+                     $single_opened = false;
+
+                     $original = '';
+                     for($i = 0, $l = strlen($sContent); $i < $l; $i++) {
+                        # string detection
+                        if($sContent[$i] == '"' && !$double_opened && !$single_opened) {
+                           $double_opened = true;
+                           $i++;
+                        }
+
+                        if($sContent[$i] == "'" && !$single_opened && !$double_opened) {
+                           $single_opened = true;
+                           $i++;
+
+                        }
+
+                        # attempt interpolation only inside strings and ignore string nesting
+                        if($single_opened || $double_opened) {
+                           $chunk = substr($sContent,$i,2);
+
+                           # TODO ignore escaped interpolation \#{
+                           if($chunk == self::TOKEN_INTERPOLATION_START) {
+                              $depth++;
+                              $i += 2;
+                           }
+
+                           if($sContent[$i] == '{') $depth++;
+                           if($sContent[$i] == '}') $depth--;
+
+                           if($depth) #grab contents of an #{ }
+                              $original .= $sContent[$i];
+
+                           if(!$depth && $original) {
+                              # detect string type
+                              $quote = '';
+                              if($single_opened)
+                                 $quote = "'";
+                              elseif($double_opened)
+                                 $quote = '"';
+
+                              $_sContent = str_replace('#{'.$original.'}', "$quote.(".$original.").$quote", $_sContent);
+                              $original = '';
+                           }
+                        }
+
+                        #string end detection
+                        #
+                        if($single_opened && !$double_opened && $sContent[$i] == "'")
+                           $single_opened = false;
+
+                        if($double_opened && !$single_opened && $sContent[$i] == '"')
+                           $double_opened = false;
+
+                     }
+                  }
+
+                  $sContent = $_sContent;
+
 						$sContent = "<?php echo $sContent; ?>\n";
 						$bPhp = true;
 					}
@@ -964,7 +1029,12 @@ class HamlLine {
 	 */
 	const TOKEN_OPTIONS_LEFT = '{';
 
-	/**
+   /**
+    * Start of interpolation
+    */
+   const TOKEN_INTERPOLATION_START = '#{';
+
+   /**
 	 * End the options list
 	 */
 	const TOKEN_OPTIONS_RIGHT = '}';
