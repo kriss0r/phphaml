@@ -203,10 +203,10 @@ class HamlLine {
 	 */
 	public function getAsSource($iLevel)
 	{
-		$x = ($this->iIndent - $iLevel - 1) * self::INDENT;
+		$x = ($this->iIndent - $iLevel - 1) * HamlParser::$INDENT;
 		$sSource = '';
 		if ($x >= 0)
-			$sSource = preg_replace('|^'.str_repeat(self::TOKEN_INDENT, ($iLevel + 1) * self::INDENT).'|', '', $this->sRealSource);
+			$sSource = preg_replace('|^'.str_repeat(HamlParser::$TOKEN_INDENT, ($iLevel + 1) * HamlParser::$INDENT).'|', '', $this->sRealSource);
 		foreach ($this->aChildren as $oChild)
 			$sSource .= self::TOKEN_LINE.$oChild->getAsSource($iLevel);
 		return trim($sSource, self::TOKEN_LINE);
@@ -297,7 +297,7 @@ class HamlLine {
 	 */
 	public function setSource($sHaml)
 	{
-		$this->sSource = trim($sHaml, self::TOKEN_INDENT);
+		$this->sSource = trim($sHaml, HamlParser::$TOKEN_INDENT);
 		$this->sRealSource = $sHaml;
 		$this->sTag = null;
 		$this->aChildren = array();
@@ -810,7 +810,11 @@ class HamlLine {
 			$sCompiled = "{$this->aDebug['line']}:\t$sCompiled";
 		return $sCompiled;
 	}
-
+	
+	protected function getIndentToken(){
+		return str_repeat(HamlParser::$TOKEN_INDENT, HamlParser::$INDENT);
+	}
+	
 	/**
 	 * Indent line
 	 *
@@ -832,7 +836,7 @@ class HamlLine {
 		$sIndented = '';
 		$iLevel = ($bCount ? $this->iIndent : 0) + $iAdd;
 		foreach ($aLine as $sLine)
-			$sIndented .= str_repeat('  ', $iLevel >= 0 ? $iLevel : 0).($bNew ? "$sLine\n" : $sLine);
+			$sIndented .= str_repeat($this->getIndentToken(), $iLevel >= 0 ? $iLevel : 0).($bNew ? "$sLine\n" : $sLine);
 		return $sIndented;
 	}
 
@@ -892,7 +896,7 @@ class HamlLine {
 	{
 		$aSource = explode(self::TOKEN_LINE, $sSource);
 		foreach ($aSource as $sKey => $sValue)
-			$aSource[$sKey] = str_repeat(self::TOKEN_INDENT, $iLevel * self::INDENT) . $sValue;
+			$aSource[$sKey] = str_repeat(HamlParser::$TOKEN_INDENT, $iLevel * HamlParser::$INDENT) . $sValue;
 		$sSource = implode(self::TOKEN_LINE, $aSource);
 		return $sSource;
 	}
@@ -905,13 +909,34 @@ class HamlLine {
 	 */
 	protected function countLevel($sLine)
 	{
-		$spaces = (strlen($sLine) - strlen(ltrim($sLine, self::TOKEN_INDENT)));
-		if($spaces % self::INDENT != 0){
-			throw new HamlException("Invalid indent on line '$sLine': $spaces space(s) (needed multiple of " . self::INDENT . ")");
-		}
-		return $spaces / self::INDENT;
-	}
 
+		if ((strlen($sLine) > strlen(ltrim($sLine))) && HamlParser::$TOKEN_INDENT === null){
+			//first indented line
+			//save the indent char into $TOKEN_INDENT
+			HamlParser::$TOKEN_INDENT = $sLine[0];
+
+			//sanity check: should be space or tab
+			if (HamlParser::$TOKEN_INDENT != self::TOKEN_TAB && HamlParser::$TOKEN_INDENT != self::TOKEN_SPACE)
+				throw new HamlException("Invalid indent on line '$sLine': Needs to be either Tab or space!");
+
+			//check how many of TOKEN_INDENTS there are and set into INDENT
+			HamlParser::$INDENT = (strlen($sLine) - strlen(ltrim($sLine, HamlParser::$TOKEN_INDENT)));	
+
+			//first indented line, should be level 1
+			return 1;
+
+		}else{
+			$spaces = (strlen($sLine) - strlen(ltrim($sLine, HamlParser::$TOKEN_INDENT)));
+		}
+		//now we have everything set, we can just continue normally and check the indents
+
+		if ($spaces == 0) return 0;
+
+		if($spaces % HamlParser::$INDENT != 0){
+			throw new HamlException("Invalid indent on line '$sLine': $spaces space(s) (needed multiple of " . HamlParser::$INDENT . ")");
+		}
+		return $spaces / HamlParser::$INDENT;
+	}
 	/**
 	 * Check for inline tag
 	 *
@@ -942,8 +967,9 @@ class HamlLine {
 	/**
 	 * Indention token
 	 */
-	const TOKEN_INDENT = ' ';
-
+	//const TOKEN_INDENT = ' ';
+	const TOKEN_SPACE = ' ';
+	const TOKEN_TAB = "\t";
 	/**
 	 * Create tag (%strong, %div)
 	 */
@@ -1073,7 +1099,7 @@ class HamlLine {
 	 * Number of TOKEN_INDENT to indent
 	 */
    
-	const INDENT = 2;
+	//const INDENT = 2;
 
 	/**
 	 * Doctype definitions

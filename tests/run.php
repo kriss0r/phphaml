@@ -10,7 +10,7 @@
 if (!defined('PHPUnit_MAIN_METHOD')) 
 	define('PHPUnit_MAIN_METHOD', 'TestsRunner::main');
 
-require_once 'PHPUnit/Framework.php';
+require_once 'PHPUnit/Autoload.php';
 require_once 'PHPUnit/TextUI/TestRunner.php';
 
 require_once dirname(__FILE__).'/../includes/haml/HamlParser.class.php';
