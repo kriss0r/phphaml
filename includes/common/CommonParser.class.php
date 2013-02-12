@@ -123,7 +123,7 @@ abstract class CommonParser
 	 */
 	public function cleanLine($line)
 	{
-		return ltrim($line, self::TOKEN_INDENT);
+		return ltrim($line, HamlParser::$TOKEN_INDENT);
 	}
 
 	/**
@@ -134,7 +134,7 @@ abstract class CommonParser
 	 */
 	public function countLevel($line)
 	{
-		return ceil((strlen($line) - strlen($this->cleanLine($line))) / self::INDENT);
+		return ceil((strlen($line) - strlen($this->cleanLine($line))) / HamlParser::$INDENT);
 	}
 
 	/**
