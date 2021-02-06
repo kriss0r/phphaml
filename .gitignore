@@ -3,3 +3,5 @@ tmp/haml/*
 *.bak
 *.swp
 .DS_Store
+
+/vendor/

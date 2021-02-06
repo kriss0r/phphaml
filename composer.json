@@ -1,0 +1,14 @@
+{
+    "name": "kriss0r/php-haml",
+    "description": "Fork of PHPHaml to integrate bug fixes",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Amadeusz Jasak",
+            "email": "amadeusz.jasak@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
