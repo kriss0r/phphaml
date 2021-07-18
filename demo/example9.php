@@ -7,9 +7,9 @@
  * @subpackage Examples
  */
 
-require_once '../includes/haml/HamlParser.class.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
-$parser = new HamlParser('../tpl', '../tmp/haml');
+$parser = new HamlParser(__DIR__.'/tpl', __DIR__.'/tmp/haml');
 
 $parser->assign('menu', 'my_menu');
 echo $parser->setFile('example9.haml');

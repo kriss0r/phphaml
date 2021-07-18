@@ -1,29 +1,29 @@
 <?php
 /**
  * Example with many features.
- * 
+ *
  * @author Amadeusz Jasak <amadeusz.jasak@gmail.com>
  * @package phpHaml
  * @subpackage Examples
  */
 
-require_once '../includes/haml/HamlParser.class.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
-$parser = new HamlParser('../tpl', '../tmp/haml');
+$parser = new HamlParser(__DIR__.'/tpl', __DIR__.'/tmp/haml');
 
 class ConfigModel
 {
 	public $ID;
 	public $name;
 	public $value;
-	
+
 	public function __construct($ID, $name, $value)
 	{
 		$this->ID = $ID;
 		$this->name = $name;
-		$this->value = $value; 
+		$this->value = $value;
 	}
-	
+
 	public function getID()
 	{
 		return $this->ID;

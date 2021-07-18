@@ -1,7 +1,7 @@
-tmp/haml/*
+/vendor
+/demo/tmp/haml/*
+/demo/tmp/sass/*
+/composer.lock
 *~
 *.bak
 *.swp
-.DS_Store
-
-/vendor/

@@ -7,9 +7,9 @@
  * @subpackage Examples
  */
 
-require_once '../includes/sass/SassParser.class.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
-$sass = new SassParser('../tpl', '../tmp/sass');
+$sass = new SassParser(__DIR__.'/tpl', __DIR__.'/tmp/sass');
 header('Content-Type: text/css');
 echo $sass->render('example8.sass');
 

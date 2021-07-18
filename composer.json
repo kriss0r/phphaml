@@ -1,6 +1,9 @@
 {
     "name": "kriss0r/php-haml",
     "description": "Fork of PHPHaml to integrate bug fixes",
+    "keywords": [
+        "templating"
+    ],
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -10,5 +13,13 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {}
+    "require": {},
+    "autoload": {
+        "classmap": [
+            "src/common",
+            "src/haml",
+            "src/sass"
+        ],
+		"files": ["src/haml/HamlParser.class.php"]
+    }
 }

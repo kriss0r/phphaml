@@ -7,10 +7,10 @@
  * @subpackage Examples
  */
 
-require_once '../includes/haml/HamlParser.class.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 $title = 'This is title';
 $text =  'Lorem ipsum dolor sit amet';
 
-display_haml('../tpl/example3.haml', array(), '../tmp/haml');
+display_haml(__DIR__.'/tpl/example3.haml', array(), __DIR__.'/tmp/haml');
 ?>
